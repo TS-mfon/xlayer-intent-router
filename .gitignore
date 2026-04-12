@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+dist
+cache
+broadcast
+coverage
+.env
+.env.local
+tsconfig.tsbuildinfo
+contracts/cache
+contracts/out
+.vercel

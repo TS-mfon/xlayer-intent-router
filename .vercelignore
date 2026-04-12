@@ -1,0 +1,8 @@
+.env
+.env.*
+contracts/cache
+contracts/out
+contracts/broadcast
+node_modules
+.next
+tsconfig.tsbuildinfo
