@@ -9,6 +9,8 @@ interface IERC20 {
 }
 
 contract IntentRouterVault {
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     struct Intent {
         address owner;
         address tokenIn;
@@ -58,6 +60,8 @@ contract IntentRouterVault {
     error SlippageExceeded();
     error TokenTransferFailed();
     error RouterCallFailed(bytes data);
+    error InvalidNativeValue();
+    error NativeTransferFailed();
 
     modifier onlyOwner() {
         _onlyOwner();
@@ -76,6 +80,8 @@ contract IntentRouterVault {
         emit AgentWalletUpdated(address(0), initialAgentWallet);
     }
 
+    receive() external payable {}
+
     function createIntent(
         address tokenIn,
         address tokenOut,
@@ -84,7 +90,7 @@ contract IntentRouterVault {
         uint256 minAmountOut,
         uint256 deadline,
         bytes32 quoteHash
-    ) external whenNotPaused returns (uint256 intentId) {
+    ) external payable whenNotPaused returns (uint256 intentId) {
         if (tokenIn == address(0) || tokenOut == address(0) || router == address(0)) {
             revert InvalidAddress();
         }
@@ -92,8 +98,13 @@ contract IntentRouterVault {
         if (!allowedRouters[router]) revert RouterNotAllowed();
         if (deadline < block.timestamp) revert Expired();
 
-        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn)) {
-            revert TokenTransferFailed();
+        if (tokenIn == NATIVE_TOKEN) {
+            if (msg.value != amountIn) revert InvalidNativeValue();
+        } else {
+            if (msg.value != 0) revert InvalidNativeValue();
+            if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn)) {
+                revert TokenTransferFailed();
+            }
         }
 
         intentId = ++nextIntentId;
@@ -120,7 +131,7 @@ contract IntentRouterVault {
         if (msg.sender != intent.owner) revert Unauthorized();
         if (intent.cancelled || intent.executed) revert AlreadyFinalized();
         intent.cancelled = true;
-        if (!IERC20(intent.tokenIn).transfer(intent.owner, intent.amountIn)) revert TokenTransferFailed();
+        _transferOut(intent.tokenIn, intent.owner, intent.amountIn);
         emit IntentCancelled(intentId, msg.sender);
     }
 
@@ -136,20 +147,28 @@ contract IntentRouterVault {
         if (block.timestamp > intent.deadline) revert Expired();
         if (!allowedRouters[intent.router]) revert RouterNotAllowed();
 
-        uint256 beforeOut = IERC20(intent.tokenOut).balanceOf(address(this));
-        if (!IERC20(intent.tokenIn).approve(intent.router, 0)) revert TokenTransferFailed();
-        if (!IERC20(intent.tokenIn).approve(intent.router, intent.amountIn)) revert TokenTransferFailed();
+        uint256 beforeOut = _balanceOf(intent.tokenOut);
+        uint256 callValue;
 
-        (bool ok, bytes memory data) = intent.router.call(routerCalldata);
+        if (intent.tokenIn == NATIVE_TOKEN) {
+            callValue = intent.amountIn;
+        } else {
+            if (!IERC20(intent.tokenIn).approve(intent.router, 0)) revert TokenTransferFailed();
+            if (!IERC20(intent.tokenIn).approve(intent.router, intent.amountIn)) revert TokenTransferFailed();
+        }
+
+        (bool ok, bytes memory data) = intent.router.call{value: callValue}(routerCalldata);
         if (!ok) revert RouterCallFailed(data);
 
-        if (!IERC20(intent.tokenIn).approve(intent.router, 0)) revert TokenTransferFailed();
+        if (intent.tokenIn != NATIVE_TOKEN) {
+            if (!IERC20(intent.tokenIn).approve(intent.router, 0)) revert TokenTransferFailed();
+        }
 
-        amountOut = IERC20(intent.tokenOut).balanceOf(address(this)) - beforeOut;
+        amountOut = _balanceOf(intent.tokenOut) - beforeOut;
         if (amountOut < intent.minAmountOut) revert SlippageExceeded();
 
         intent.executed = true;
-        if (!IERC20(intent.tokenOut).transfer(intent.owner, amountOut)) revert TokenTransferFailed();
+        _transferOut(intent.tokenOut, intent.owner, amountOut);
 
         emit IntentExecuted(intentId, intent.owner, amountOut);
     }
@@ -184,5 +203,18 @@ contract IntentRouterVault {
 
     function _whenNotPaused() internal view {
         if (paused) revert Paused();
+    }
+
+    function _balanceOf(address token) internal view returns (uint256) {
+        return token == NATIVE_TOKEN ? address(this).balance : IERC20(token).balanceOf(address(this));
+    }
+
+    function _transferOut(address token, address to, uint256 amount) internal {
+        if (token == NATIVE_TOKEN) {
+            (bool ok,) = payable(to).call{value: amount}("");
+            if (!ok) revert NativeTransferFailed();
+        } else {
+            if (!IERC20(token).transfer(to, amount)) revert TokenTransferFailed();
+        }
     }
 }

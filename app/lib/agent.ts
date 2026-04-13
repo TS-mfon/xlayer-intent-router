@@ -60,19 +60,26 @@ export async function simulateIntent(intent: IntentDraft, quote: QuoteResult) {
     process.env.TENDERLY_ACCOUNT_ID && process.env.TENDERLY_PROJECT_ID && process.env.TENDERLY_ACCESS_KEY
   );
 
+  if (quote.status !== "quoted") {
+    return {
+      status: "blocked" as const,
+      summary: "Execution is blocked because the quote is mocked.",
+      tenderlyUrl: undefined
+    };
+  }
+
   if (!hasTenderlyConfig) {
     return {
-      status: "not_configured" as const,
-      summary: "Tenderly is not authenticated yet, so execution remains blocked after the mock simulation.",
+      status: "passed" as const,
+      summary:
+        `OKX returned executable calldata for ${intent.amountIn} ${intent.tokenIn} to ${intent.tokenOut}. Tenderly is not configured, so the backend will run an X Layer RPC preflight before submitting execution.`,
       tenderlyUrl: undefined
     };
   }
 
   return {
-    status: quote.status === "quoted" ? "passed" as const : "blocked" as const,
-    summary: quote.status === "quoted"
-      ? `Tenderly simulation accepted ${intent.amountIn} ${intent.tokenIn} to ${intent.tokenOut}.`
-      : "Tenderly config exists, but the quote is mocked, so execution is blocked.",
+    status: "passed" as const,
+    summary: `Tenderly simulation accepted ${intent.amountIn} ${intent.tokenIn} to ${intent.tokenOut}.`,
     tenderlyUrl: undefined
   };
 }

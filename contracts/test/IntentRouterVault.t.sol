@@ -4,6 +4,7 @@ pragma solidity ^0.8.33;
 import {IntentRouterVault} from "../src/IntentRouterVault.sol";
 
 interface Vm {
+    function deal(address account, uint256 amount) external;
     function expectRevert(bytes4 selector) external;
     function prank(address sender) external;
     function warp(uint256 newTimestamp) external;
@@ -64,23 +65,45 @@ contract MockRouter {
     }
 }
 
+contract MockNativeRouter {
+    MockERC20 public outToken;
+    uint256 public amountOut;
+    uint256 public amountIn;
+
+    constructor(MockERC20 outToken_, uint256 amountIn_, uint256 amountOut_) {
+        outToken = outToken_;
+        amountIn = amountIn_;
+        amountOut = amountOut_;
+    }
+
+    function swapNative() external payable {
+        require(msg.value == amountIn, "native amount");
+        outToken.mint(msg.sender, amountOut);
+    }
+}
+
 contract IntentRouterVaultTest {
     Vm internal constant VM = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+    address internal constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address internal user = address(0xA11CE);
     address internal agent = address(0xA6E17);
     MockERC20 internal tokenIn;
     MockERC20 internal tokenOut;
     MockRouter internal router;
+    MockNativeRouter internal nativeRouter;
     IntentRouterVault internal vault;
 
     function setUp() public {
         tokenIn = new MockERC20("Test OKB", "tOKB");
         tokenOut = new MockERC20("Test USDT", "tUSDT");
         router = new MockRouter(tokenIn, tokenOut, 90 ether);
+        nativeRouter = new MockNativeRouter(tokenOut, 10 ether, 90 ether);
         vault = new IntentRouterVault(agent);
         vault.setRouterAllowed(address(router), true);
+        vault.setRouterAllowed(address(nativeRouter), true);
         tokenIn.mint(user, 100 ether);
+        VM.deal(user, 100 ether);
         VM.prank(user);
         tokenIn.approve(address(vault), 100 ether);
         VM.warp(100);
@@ -117,6 +140,22 @@ contract IntentRouterVaultTest {
         assertEq(tokenOut.balanceOf(user), 90 ether);
     }
 
+    function testCreatesNativeIntent() public {
+        uint256 intentId = createNativeIntent(80 ether);
+        assertEq(intentId, 1);
+        assertEq(address(vault).balance, 10 ether);
+    }
+
+    function testExecutesNativeIntentAndTransfersOutput() public {
+        uint256 intentId = createNativeIntent(80 ether);
+        VM.prank(agent);
+        uint256 amountOut = vault.executeIntent(intentId, abi.encodeCall(MockNativeRouter.swapNative, ()));
+
+        assertEq(amountOut, 90 ether);
+        assertEq(tokenOut.balanceOf(user), 90 ether);
+        assertEq(address(vault).balance, 0);
+    }
+
     function testRejectsSlippage() public {
         uint256 intentId = createDefaultIntent(95 ether);
         VM.prank(agent);
@@ -129,6 +168,14 @@ contract IntentRouterVaultTest {
         VM.prank(user);
         vault.cancelIntent(intentId);
         assertEq(tokenIn.balanceOf(user), 100 ether);
+    }
+
+    function testCancelsNativeIntentAndRefunds() public {
+        uint256 intentId = createNativeIntent(80 ether);
+        VM.prank(user);
+        vault.cancelIntent(intentId);
+        assertEq(user.balance, 100 ether);
+        assertEq(address(vault).balance, 0);
     }
 
     function testRejectsExpiredIntent() public {
@@ -145,6 +192,19 @@ contract IntentRouterVaultTest {
             address(tokenIn),
             address(tokenOut),
             address(router),
+            10 ether,
+            minAmountOut,
+            1_000,
+            keccak256("quote")
+        );
+    }
+
+    function createNativeIntent(uint256 minAmountOut) internal returns (uint256) {
+        VM.prank(user);
+        return vault.createIntent{value: 10 ether}(
+            NATIVE_TOKEN,
+            address(tokenOut),
+            address(nativeRouter),
             10 ether,
             minAmountOut,
             1_000,

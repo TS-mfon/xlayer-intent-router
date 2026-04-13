@@ -5,7 +5,8 @@ import {IntentRouterVault} from "../src/IntentRouterVault.sol";
 
 interface Vm {
     function envAddress(string calldata key) external view returns (address);
-    function startBroadcast() external;
+    function envUint(string calldata key) external view returns (uint256);
+    function startBroadcast(uint256 privateKey) external;
     function stopBroadcast() external;
 }
 
@@ -14,7 +15,8 @@ contract Deploy {
 
     function run() external returns (IntentRouterVault vault) {
         address agentWallet = VM.envAddress("AGENT_WALLET_ADDRESS");
-        VM.startBroadcast();
+        uint256 privateKey = VM.envUint("PRIVATE_KEY");
+        VM.startBroadcast(privateKey);
         vault = new IntentRouterVault(agentWallet);
         VM.stopBroadcast();
     }

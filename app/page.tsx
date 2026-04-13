@@ -42,6 +42,8 @@ type ConfigResult = {
   agentWalletAddress: string | null;
 };
 
+const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
 export default function Home() {
   const [prompt, setPrompt] = useState("swap 5 OKB to USDT if slippage is under 0.8%");
   const [draft, setDraft] = useState<IntentDraft | null>(null);
@@ -153,13 +155,18 @@ export default function Home() {
 
       await walletClient.switchChain({ id: xLayerViemChain.id });
 
-      const approveHash = await walletClient.writeContract({
-        address: quote.tokenInAddress as Hex,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [config.vaultAddress as Hex, BigInt(quote.amountInRaw)]
-      });
-      setLog((items) => [...items, `Token approval submitted: ${approveHash}`]);
+      const isNativeIn = quote.tokenInAddress.toLowerCase() === NATIVE_TOKEN;
+      if (!isNativeIn) {
+        const approveHash = await walletClient.writeContract({
+          address: quote.tokenInAddress as Hex,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [config.vaultAddress as Hex, BigInt(quote.amountInRaw)]
+        });
+        setLog((items) => [...items, `Token approval submitted: ${approveHash}`]);
+      } else {
+        setLog((items) => [...items, "Native OKB deposit does not need token approval."]);
+      }
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + draft.deadlineMinutes * 60);
       const intentHash = await walletClient.writeContract({
@@ -174,7 +181,8 @@ export default function Home() {
           BigInt(quote.minAmountOutRaw),
           deadline,
           quote.quoteHash as Hex
-        ]
+        ],
+        ...(isNativeIn ? { value: BigInt(quote.amountInRaw) } : {})
       });
 
       const publicClient = createPublicClient({
@@ -325,7 +333,7 @@ export default function Home() {
 const erc20Abi = parseAbi(["function approve(address spender, uint256 amount) returns (bool)"]);
 
 const vaultUiAbi = parseAbi([
-  "function createIntent(address tokenIn,address tokenOut,address router,uint256 amountIn,uint256 minAmountOut,uint256 deadline,bytes32 quoteHash) returns (uint256)"
+  "function createIntent(address tokenIn,address tokenOut,address router,uint256 amountIn,uint256 minAmountOut,uint256 deadline,bytes32 quoteHash) payable returns (uint256)"
 ]);
 
 const intentCreatedEvent = parseAbiItem(
