@@ -80,7 +80,7 @@ export default function Home() {
     try {
       const nextConfig = await fetch("/api/config").then((res) => res.json());
       setConfig(nextConfig);
-      setLog((items) => [...items, "Loaded X Layer testnet config."]);
+      setLog((items) => [...items, "Loaded X Layer mainnet config."]);
 
       const nextDraft = await postJson<IntentDraft>("/api/intent/parse", { prompt });
       setDraft(nextDraft);
@@ -122,7 +122,7 @@ export default function Home() {
 
   async function connectWallet() {
     if (!window.ethereum) {
-      setLog((items) => [...items, "Install a browser wallet that supports X Layer testnet."]);
+      setLog((items) => [...items, "Install a browser wallet that supports X Layer mainnet."]);
       return;
     }
     const [address] = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
@@ -214,7 +214,7 @@ export default function Home() {
     <main className="shell">
       <section className="workspace">
         <div className="intro">
-          <p className="eyebrow">X Layer testnet</p>
+          <p className="eyebrow">X Layer mainnet</p>
           <h1>Intent Router</h1>
           <p>
             Tell the agent the trade, review the route and simulation, then approve the onchain

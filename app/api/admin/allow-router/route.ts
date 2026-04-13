@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createWalletClient, getAddress, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { addresses, xLayerTestnet } from "../../../lib/xlayer";
+import { addresses, xLayerNetwork } from "../../../lib/xlayer";
 import { vaultAbi, xLayerViemChain } from "../../../lib/vault";
 
 export async function POST(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const client = createWalletClient({
       account,
       chain: xLayerViemChain,
-      transport: http(xLayerTestnet.rpcUrl)
+      transport: http(xLayerNetwork.rpcUrl)
     });
 
     const transactionHash = await client.writeContract({

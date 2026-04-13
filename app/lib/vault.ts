@@ -1,6 +1,6 @@
 import { createPublicClient, createWalletClient, http, parseAbi, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { addresses, xLayerTestnet } from "./xlayer";
+import { addresses, xLayerNetwork } from "./xlayer";
 
 export const vaultAbi = parseAbi([
   "function executeIntent(uint256 intentId, bytes routerCalldata) returns (uint256)",
@@ -11,11 +11,11 @@ export const vaultAbi = parseAbi([
 ]);
 
 export const xLayerViemChain = {
-  id: xLayerTestnet.chainId,
-  name: xLayerTestnet.name,
-  nativeCurrency: xLayerTestnet.nativeCurrency,
+  id: xLayerNetwork.chainId,
+  name: xLayerNetwork.name,
+  nativeCurrency: xLayerNetwork.nativeCurrency,
   rpcUrls: {
-    default: { http: [xLayerTestnet.rpcUrl] }
+    default: { http: [xLayerNetwork.rpcUrl] }
   }
 };
 
@@ -27,12 +27,12 @@ export async function executeVaultIntent(intentId: bigint, routerCalldata: Hex) 
   const account = privateKeyToAccount(privateKey);
   const publicClient = createPublicClient({
     chain: xLayerViemChain,
-    transport: http(xLayerTestnet.rpcUrl)
+    transport: http(xLayerNetwork.rpcUrl)
   });
   const client = createWalletClient({
     account,
     chain: xLayerViemChain,
-    transport: http(xLayerTestnet.rpcUrl)
+    transport: http(xLayerNetwork.rpcUrl)
   });
 
   await publicClient.simulateContract({

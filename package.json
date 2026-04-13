@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "contracts:build": "forge build --root contracts",
     "contracts:test": "forge test --root contracts",
+    "contracts:deploy:xlayer": "forge script contracts/script/Deploy.s.sol:Deploy --root contracts --rpc-url ${XLAYER_RPC_URL:-https://rpc.xlayer.tech} --broadcast",
     "contracts:deploy:xlayer-testnet": "forge script contracts/script/Deploy.s.sol:Deploy --root contracts --rpc-url ${XLAYER_TESTNET_RPC_URL:-https://testrpc.xlayer.tech/terigon} --broadcast"
   },
   "dependencies": {

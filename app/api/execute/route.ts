@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { intentSchema, quoteSchema } from "../../lib/schema";
-import { addresses, xLayerTestnet } from "../../lib/xlayer";
+import { addresses, xLayerNetwork } from "../../lib/xlayer";
 import { executeVaultIntent } from "../../lib/vault";
 
 export async function POST(request: NextRequest) {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       status: "submitted",
       transactionHash,
-      summary: `Submitted execution for ${intent.amountIn} ${intent.tokenIn} to ${intent.tokenOut} on chain ${xLayerTestnet.chainId}.`
+      summary: `Submitted execution for ${intent.amountIn} ${intent.tokenIn} to ${intent.tokenOut} on chain ${xLayerNetwork.chainId}.`
     });
   } catch (error) {
     return NextResponse.json(

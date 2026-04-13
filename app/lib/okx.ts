@@ -1,6 +1,6 @@
 import { createHmac } from "crypto";
 import { IntentDraft, QuoteResult } from "./schema";
-import { addresses, xLayerTestnet } from "./xlayer";
+import { addresses, xLayerNetwork } from "./xlayer";
 
 type OkxTokenConfig = Record<string, { address: `0x${string}`; decimals: number }>;
 
@@ -62,7 +62,7 @@ export async function getOkxSwapQuote(intent: IntentDraft): Promise<QuoteResult>
 
   const amount = toBaseUnits(intent.amountIn, fromToken.decimals);
   const params = new URLSearchParams({
-    chainIndex: String(xLayerTestnet.chainId),
+    chainIndex: String(xLayerNetwork.chainId),
     amount,
     fromTokenAddress: fromToken.address,
     toTokenAddress: toToken.address,
@@ -130,7 +130,7 @@ async function getTokenMap(): Promise<OkxTokenConfig> {
 
   const response = await okxRequest<OkxTokenListResponse>(
     "GET",
-    `/api/v6/dex/aggregator/all-tokens?chainIndex=${xLayerTestnet.chainId}`
+    `/api/v6/dex/aggregator/all-tokens?chainIndex=${xLayerNetwork.chainId}`
   );
   if (response.code !== "0" || !response.data) {
     throw new Error(`OKX token discovery failed: ${response.msg || response.code}`);

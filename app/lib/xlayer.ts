@@ -1,7 +1,7 @@
-const chainId = Number(process.env.XLAYER_CHAIN_ID ?? "1952");
+const chainId = Number(process.env.XLAYER_CHAIN_ID ?? "196");
 const isMainnet = chainId === 196;
 
-export const xLayerTestnet = {
+export const xLayerNetwork = {
   chainId,
   name: isMainnet ? "X Layer Mainnet" : "X Layer Testnet",
   nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 },

@@ -18,12 +18,12 @@ Team member: `sudodave`
 ## X Layer Deployment
 
 - App: `https://xlayer-intent-router.vercel.app`
-- Network: X Layer testnet
-- Chain ID: `1952`
-- RPC: `https://testrpc.xlayer.tech/terigon`
-- Explorer: `https://www.okx.com/web3/explorer/xlayer-test`
-- Vault deployment address: `0x6855B0D90f618885d056F898b14AEa513D633048`
-- Deployment transaction: `0x1c4c192f0b0811df4284f545e5c77c7314e0d3d5742b6c7b05f9936f7c7acb48`
+- Network: X Layer mainnet
+- Chain ID: `196`
+- RPC: `https://rpc.xlayer.tech`
+- Explorer: `https://www.okx.com/web3/explorer/xlayer`
+- Vault deployment address: `0x45119A32ca6C4d67424401dA92Abe4EC6c83f8Ce`
+- Deployment transaction: `0x250ed7fccf0237c35ec21f8deee346e39f2682747d1a7929c77b23e978634fc6`
 - Agentic Wallet address: `0x23c9EE4568A8ed6364183393D41D243F2f5A2AC6`
 - Agentic Wallet funding transaction: `0x20aeff95fa409258711cec9fa8e70e7112dd1bc4e3edf8dd14a18ed380e56281`
 - Contract owner/admin: `0xEd9EDd8586b20524CafA4F568413C504C9B03172`
@@ -64,12 +64,12 @@ OKX_PASSPHRASE=...
 OKX_PROJECT_ID=... # optional, only if your OKX project requires it
 AGENT_PRIVATE_KEY=...
 ADMIN_PRIVATE_KEY=...
-NEXT_PUBLIC_INTENT_ROUTER_VAULT=0x6855B0D90f618885d056F898b14AEa513D633048
+NEXT_PUBLIC_INTENT_ROUTER_VAULT=0x45119A32ca6C4d67424401dA92Abe4EC6c83f8Ce
 ```
 
 The backend uses the OKX DEX API to request swap calldata for the vault address, then uses `AGENT_PRIVATE_KEY` to submit `executeIntent`. `ADMIN_PRIVATE_KEY` is only used to allowlist the OKX router returned by the quote. `.env.local` is gitignored and should not be committed.
 
-If OKX token discovery does not return a token symbol on X Layer testnet, set `OKX_TOKEN_MAP_JSON` manually:
+If OKX token discovery does not return a token symbol on X Layer mainnet, set `OKX_TOKEN_MAP_JSON` manually:
 
 ```bash
 OKX_TOKEN_MAP_JSON={"USDT":{"address":"0x...","decimals":6},"USDC":{"address":"0x...","decimals":6}}
@@ -89,13 +89,13 @@ npm run contracts:build
 npm run contracts:test
 ```
 
-Deploy to X Layer testnet after funding the deployer and setting env vars:
+Deploy to X Layer mainnet after funding the deployer and setting env vars:
 
 ```bash
-export XLAYER_TESTNET_RPC_URL=https://testrpc.xlayer.tech/terigon
+export XLAYER_RPC_URL=https://rpc.xlayer.tech
 export AGENT_WALLET_ADDRESS=0x...
 export PRIVATE_KEY=0x...
-npm run contracts:deploy:xlayer-testnet
+npm run contracts:deploy:xlayer
 ```
 
 After deployment, set `NEXT_PUBLIC_INTENT_ROUTER_VAULT` and update the deployment address above.
